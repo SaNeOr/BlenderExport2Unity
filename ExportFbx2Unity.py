@@ -15,6 +15,7 @@ bl_info = {
 PROPS = [
     # ('importPath', bpy.props.StringProperty(name='ImportPath', default='')),
     ('exportPath', bpy.props.StringProperty(name='ExportPath', default='')),
+    ('fbxName', bpy.props.StringProperty(name='FBX Name', default='')),
     # ('autoSave', bpy.props.BoolProperty(name='Auto Save', default=False)),
 ]
 
@@ -34,40 +35,75 @@ class ExportFBXPanel(bpy.types.Panel):
             row = col.row()
             row.prop(context.scene, prop_name)
         col.operator('opr.export_operator', text='Export')
-        global AutoSave
-        AutoSave = context.scene.autoSave
+        # global AutoSave
+        # AutoSave = context.scene.autoSave
         # print(AutoSave)
 
 
 class ExportFBXOperator(bpy.types.Operator):
     bl_idname = 'opr.export_operator'
     bl_label = 'Object Export'
+    bl_description = 'Export to Unity : )'
 
     def execute(self, context):
         global currentExportPath
         currentExportPath = context.scene.exportPath
         print(currentExportPath)
+        currentExportPath = currentExportPath + '\\' + context.scene.fbxName
+        if not currentExportPath.endswith(".fbx"):
+            currentExportPath += ".fbx"
 
-        for obj in bpy.context.visible_objects:
-            obj.location = (-obj.location.x, -obj.location.y, obj.location.z)
-            obj.rotation_euler.z += pi
+        # sCollection = bpy.context.collection
+        for sCollection in bpy.data.collections:
+            root = bpy.data.objects.new("empty", None)
+            # bpy.context.collection.objects.link(root)
+            bpy.context.scene.collection.objects.link(root)
+            # sCollection.objects.link(bpy.context.collection)
+            root.name = sCollection.name
+            parentCol(sCollection, root)
+
+        # item = 'EMPTY'
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.select_by_type(type='MESH')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='SELECT')
+
+        # for obj in bpy.context.visible_objects:
+        for obj in bpy.data.objects:
+            if obj.type == 'OBJECT':
+                obj.location = (-obj.location.x, -
+                                obj.location.y, obj.location.z)
+                obj.rotation_euler.z += pi
+            if obj.type == 'EMPTY':
+                obj.rotation_euler.z += pi
 
         bpy.ops.export_scene.fbx(
             filepath=currentExportPath,
+            use_selection=True,
             axis_forward='Z', axis_up='Y',
             apply_scale_options='FBX_SCALE_UNITS',
-            object_types={'MESH'},
+            object_types={'MESH', 'EMPTY'},
             use_space_transform=True,
             bake_space_transform=True,)
 
-        for obj in bpy.context.visible_objects:
-            obj.location = (-obj.location.x, -obj.location.y, obj.location.z)
-            obj.rotation_euler.z -= pi
-            if abs(obj.rotation_euler.z * pi - 0.001) < 0.01:
-                obj.rotation_euler.z = 0
-            # obj.rotation_euler = (0.0, 0.0, 0.0)
+        # for obj in bpy.context.visible_objects:
+        for obj in bpy.data.objects:
+            if obj.type == 'OBJECT':
+                obj.location = (-obj.location.x, -
+                                obj.location.y, obj.location.z)
+                obj.rotation_euler.z -= pi
+                if abs(obj.rotation_euler.z * pi - 0.001) < 0.01:
+                    obj.rotation_euler.z = 0
+                # obj.rotation_euler = (0.0, 0.0, 0.0)
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # item = 'EMPTY'
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.object.select_by_type(type='EMPTY')
+        bpy.ops.object.delete()
 
         # ExportFBX(bpy.context.visible_objects)
+        self.report({'INFO'}, "Export Successfully")
         return {'FINISHED'}
 
     # def AutoSaveOperator():
@@ -78,6 +114,22 @@ class ExportFBXOperator(bpy.types.Operator):
     #             ExportFBX(bpy.context.visible_objects)
     #             print("Save")
     #     return 5.0
+
+
+def parentCol(_colParent, _objParent):
+    for col in _colParent.objects:
+        print(col.name)
+        col.parent = _objParent
+        # newObj = bpy.data.objects.new("empty", None)
+        # bpy.context.scene.collection.objects.link(newObj)
+        # newObj.name = col.name
+        # newObj.parent = _objParent
+        # if len(col.objects) > 0:
+        #     objs = col.objects
+        #     for obj in objs:
+        #         obj.parent = _objParent
+        # else:
+        #     parentCol(col, _objParent)
 
 
 # def ExportFBX(objs):
