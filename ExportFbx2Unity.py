@@ -63,9 +63,11 @@ class ExportFBXOperator(bpy.types.Operator):
             parentCol(sCollection, root)
 
         # item = 'EMPTY'
+        if bpy.context.object.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.select_by_type(type='MESH')
-        bpy.ops.object.mode_set(mode='OBJECT')
+        # bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='SELECT')
 
         # for obj in bpy.context.visible_objects:
